@@ -52,7 +52,9 @@ def main():
                     return {} # The delayed service has not published IPC yet.
             try:
                 current = wait_until(lambda: (s if (s := status()).get('connected') and s.get('screens') else None))
-                assert current['version'] == '0.2.2'
+                assert current['version'] == json.loads((ROOT / 'manifest.json').read_text())['version']
+                expected_palette = json.loads(call('bridge-test', 'info'))['palette']
+                assert current['palette'] == expected_palette, (current['palette'], expected_palette)
                 assert current['positionX'] == 0.31 and current['positionY'] == 0.69
                 pid = current['workerPid']
                 environ = Path(f'/proc/{pid}/environ').read_bytes().split(b'\0')
@@ -74,6 +76,7 @@ def main():
                 wait_until(lambda: (s if (s := json.loads(call('bridge-test', 'info') or '{}')).get('state', {}).get('positionX') == 0.2 else None))
                 call('bridge-test', 'theme')
                 wait_until(lambda: json.loads(call('bridge-test', 'info') or '{}').get('state', {}).get('palette', {}).get('accent') == '#f7768e')
+                assert status()['palette']['foreground'] == '#eeeeee'
                 assert json.loads(call('bridge-test', 'info'))['writes'] == 1
                 print('PASS: position and theme changes cross the bridge; one save')
                 visible = next((s for s in status()['screens'] if s['visible']), None)

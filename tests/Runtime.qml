@@ -2,7 +2,7 @@ import QtQuick
 import QtTest
 import Quickshell
 import Quickshell.Wayland
-import qs.Commons
+import qs.Commons as Commons
 import "Plugin/renderer" as Plugin
 
 // Run in a separate Quickshell process. Synthetic Qt events do not move the
@@ -11,6 +11,10 @@ ShellRoot {
     id: harness
     property int writes: 0
     property var lastSettings: ({})
+    QtObject {
+        id: qmlSavedState
+        property list<string> minimizedScreens: []
+    }
     property var host: QtObject {
         function updateEntryInline(id, settings) {
             harness.writes++;
@@ -25,8 +29,8 @@ ShellRoot {
 
     Plugin.ClockController {
         id: service
-        palette: ({accent: String(Color.accent), foreground: String(Color.foreground),
-            background: String(Color.background), fontFamily: Style.fontFamily})
+        palette: ({accent: String(Commons.Color.accent), foreground: String(Commons.Color.foreground),
+            background: String(Commons.Color.background), fontFamily: Commons.Style.fontFamily})
         emptyScreens: {
             var result = {};
             for (var screen of Quickshell.screens) result[screen.name] = true;
@@ -170,6 +174,14 @@ ShellRoot {
                 }), "minimize affected another monitor");
                 service.configure({settings: Object.assign({}, harness.lastSettings)});
                 harness.check(service.isMinimized(screenName), "settings reload lost minimized state");
+                qmlSavedState.minimizedScreens = [screenName];
+                var qmlSettings = Object.assign({}, harness.lastSettings, {
+                    minimizedScreens: qmlSavedState.minimizedScreens
+                });
+                service.configure({settings: qmlSettings});
+                harness.check(service.isMinimized(screenName), "QML sequence reload lost minimized state");
+                harness.check(harness.writes === writesBeforeMinimize + 1,
+                    "restoring minimized settings wrote config again");
                 console.log("CLOCK_TEST_PASS: minimize is monitor-local, keeps timekeeping and saves state without moving");
 
                 service.emptyScreens = ({});
@@ -212,9 +224,9 @@ ShellRoot {
                     var capture = Quickshell.env("DESKTOP_CLOCK_CAPTURE_PATH");
                     if (capture) result.saveToFile(capture);
                     // Palette changes stay inside this isolated process.
-                    Color.accent = "#f7768e";
-                    Color.foreground = "#eeeeee";
-                    Color.background = "#101010";
+                    Commons.Color.accent = "#f7768e";
+                    Commons.Color.foreground = "#eeeeee";
+                    Commons.Color.background = "#101010";
                     themeCheck.start();
                 });
             } catch (error) {

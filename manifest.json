@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.manateelazycat.desktop-clock",
   "name": "Omarchy Desktop Clock",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "author": "ManateeLazyCat",
   "license": "GPL-3.0-only",
   "description": "An isolated, low-overhead terminal clock on empty workspaces, with theme colors and a shared draggable position.",

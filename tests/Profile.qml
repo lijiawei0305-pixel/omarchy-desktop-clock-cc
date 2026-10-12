@@ -1,7 +1,7 @@
 import QtQuick
 import QtTest
 import Quickshell
-import qs.Commons
+import qs.Commons as Commons
 import "Plugin/renderer" as Plugin
 
 // Isolated rendering benchmark: uses the real service, four real surfaces,

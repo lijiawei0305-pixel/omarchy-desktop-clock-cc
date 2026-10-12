@@ -8,7 +8,13 @@ Item {
     property var settings: ({})
     property var palette: ({foreground: "#c0caf5", background: "#1a1b26", accent: "#7aa2f7", fontFamily: "monospace"})
     property var emptyScreens: ({})
-    readonly property var minimizedScreens: Array.isArray(settings.minimizedScreens) ? settings.minimizedScreens : []
+    readonly property var minimizedScreens: {
+        var names = settings.minimizedScreens;
+        // QML method/property round-trips can turn a JS array into a Qt
+        // sequence. It has indexed entries and length, but is not an Array.
+        if (!names || typeof names !== "object" || typeof names.length !== "number") return [];
+        return Array.from(names).filter(function(name) { return typeof name === "string"; });
+    }
     readonly property var eligibleScreens: Quickshell.screens.filter(function(s) { return root.emptyScreens[s.name] === true; })
     readonly property bool anyVisible: eligibleScreens.length > 0
     property point position: Qt.point(0.5, 0.52)
