@@ -15,9 +15,9 @@ elif [[ $# -gt 0 ]]; then
 fi
 
 omarchy plugin validate "$plugin_source"
+install -d -m 700 -- "$backup_root"
 if [[ -f $config_root/shell.json ]]; then
-  mkdir -p -- "$backup_root"
-  cp -- "$config_root/shell.json" "$backup_root/shell-$(date +%Y%m%d-%H%M%S-%N).json"
+  (umask 077; cp -- "$config_root/shell.json" "$backup_root/shell-$(date +%Y%m%d-%H%M%S-%N).json")
 fi
 if [[ $(realpath -m -- "$plugin_source") != $(realpath -m -- "$plugin_target") ]]; then
   mkdir -p -- "$plugin_target"
@@ -41,16 +41,27 @@ if [[ -f $hypr_config ]]; then
   python3 - "$hypr_config" "$backup_root" <<'PY'
 from datetime import datetime
 from pathlib import Path
+import os
 import shutil
 import sys
+import tempfile
 
 config = Path(sys.argv[1])
 marker = '-- >>> omarchy-desktop-clock >>>'
 text = config.read_text()
 if marker not in text:
     backup = Path(sys.argv[2])
-    backup.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(config, backup / ('hyprland-' + datetime.now().strftime('%Y%m%d-%H%M%S-%f') + '.lua'))
+    # mkstemp creates an exclusive 0600 file before any config bytes are copied.
+    # Keep backups private even when the source configuration is world-readable.
+    fd, backup_path = tempfile.mkstemp(
+        prefix='hyprland-' + datetime.now().strftime('%Y%m%d-%H%M%S-%f') + '-',
+        suffix='.lua', dir=backup)
+    try:
+        with os.fdopen(fd, 'wb') as destination, config.open('rb') as source:
+            shutil.copyfileobj(source, destination)
+    except BaseException:
+        Path(backup_path).unlink()
+        raise
     config.write_text(text.rstrip() + '''
 
 -- >>> omarchy-desktop-clock >>>
