@@ -83,6 +83,7 @@ PanelWindow {
         id: tab
         screen: panel.screen
         slot: 0
+        controller: panel.controller
         namespace: "omarchy-desktop-clock-minimized"
         accent: panel.controller.palette.accent
         visible: panel.minimized && !panel.remapping

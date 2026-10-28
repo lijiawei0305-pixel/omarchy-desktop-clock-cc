@@ -23,6 +23,10 @@ Item {
     property point pendingPosition: Qt.point(0.5, 0.52)
     property bool positionPending: false
     property bool dragging: false
+    property real minimizedTabPosition: Position.unit(settings.minimizedTabX, 0.475)
+    property bool tabDragging: false
+    property string tabDragScreen: ""
+    property real tabDragOriginX: 0
     readonly property real clockScale: Position.clamp(Position.number(settings.scale, 1), 0.5, 2)
     readonly property real clockOpacity: Position.clamp(Position.number(settings.opacity, 1), 0.2, 1)
     property alias surfaces: surfaces
@@ -46,10 +50,33 @@ Item {
 
     function configure(config) {
         settings = config.settings || ({});
+        minimizedTabPosition = Position.unit(settings.minimizedTabX, 0.475);
         if (config.palette) palette = config.palette;
         savedPosition = Qt.point(Position.unit(settings.positionX, 0.5), Position.unit(settings.positionY, 0.52));
         if (!dragging) position = savedPosition;
         statusChanged();
+    }
+    function beginTabDrag(screen) {
+        if (tabDragging || !screen) return false;
+        tabDragging = true;
+        tabDragScreen = screen.name;
+        tabDragOriginX = minimizedTabPosition;
+        return true;
+    }
+    function updateTabDrag(screen, dx) {
+        if (!tabDragging || !screen) return;
+        minimizedTabPosition = Position.clamp(tabDragOriginX + dx / Math.max(1, screen.width - 72), 0, 1);
+    }
+    function finishTabDrag() {
+        if (!tabDragging) return;
+        tabDragging = false;
+        var next = Object.assign({}, settings, {minimizedTabX: minimizedTabPosition});
+        settings = next;
+        saveRequested(next);
+    }
+    function cancelTabDrag() {
+        tabDragging = false;
+        minimizedTabPosition = Position.unit(settings.minimizedTabX, 0.475);
     }
     function beginDrag() {
         dragOrigin = position;
